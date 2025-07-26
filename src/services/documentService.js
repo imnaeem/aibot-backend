@@ -3,13 +3,65 @@ const path = require("path");
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 const textract = require("textract");
+const { createWorker } = require("tesseract.js");
 
 class DocumentService {
+  /**
+   * Check if file is an image based on mime type
+   */
+  isImageFile(mimeType) {
+    return mimeType && mimeType.startsWith("image/");
+  }
+
+  /**
+   * Extract text from image using OCR
+   */
+  async extractTextFromImageBuffer(buffer, mimeType) {
+    try {
+      // First try textract
+      try {
+        return await this.extractWithTextractBuffer(
+          buffer,
+          `image.${mimeType.split("/")[1]}`
+        );
+      } catch (textractError) {
+        console.log(
+          "Textract failed for image, trying Tesseract OCR:",
+          textractError.message
+        );
+
+        // Fallback to Tesseract.js OCR
+        const worker = await createWorker();
+        await worker.loadLanguage("eng");
+        await worker.initialize("eng");
+
+        // Convert buffer to base64 for Tesseract
+        const base64Image = buffer.toString("base64");
+        const dataUrl = `data:${mimeType};base64,${base64Image}`;
+
+        const {
+          data: { text },
+        } = await worker.recognize(dataUrl);
+        await worker.terminate();
+
+        return text || "No text found in image";
+      }
+    } catch (error) {
+      console.error("Error extracting text from image:", error);
+      throw new Error(`Failed to extract text from image: ${error.message}`);
+    }
+  }
+
   /**
    * Extract text from file buffer (for Supabase storage)
    */
   async extractTextFromBuffer(fileBuffer, mimeType, originalName) {
     try {
+      // Handle images with OCR
+      if (this.isImageFile(mimeType)) {
+        return await this.extractTextFromImageBuffer(fileBuffer, mimeType);
+      }
+
       const fileExtension = path.extname(originalName).toLowerCase();
 
       // Handle different file types
