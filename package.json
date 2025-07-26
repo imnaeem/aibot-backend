@@ -1,7 +1,7 @@
 {
   "name": "chatgpt-clone-backend",
   "version": "1.0.0",
-  "description": "Backend for ChatGPT clone with streaming responses",
+  "description": "Backend for AI Bot with streaming responses",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

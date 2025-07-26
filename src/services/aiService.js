@@ -2,6 +2,7 @@ const Groq = require("groq-sdk");
 const { config, isApiKeyConfigured } = require("../config/environment");
 const {
   AVAILABLE_MODELS,
+  MODEL_PROVIDERS,
   SYSTEM_PROMPTS,
   ERROR_MESSAGES,
   SETUP_INSTRUCTIONS,
@@ -19,21 +20,37 @@ class AIService {
    * Validate the selected model
    */
   validateModel(model) {
-    return model && AVAILABLE_MODELS[model]
-      ? AVAILABLE_MODELS[model]
-      : config.groq.defaultModel;
+    // If model exists in our mapping, return the mapped Groq model
+    if (model && AVAILABLE_MODELS[model]) {
+      return {
+        requestedModel: model,
+        groqModel: AVAILABLE_MODELS[model],
+        provider: MODEL_PROVIDERS[model] || "groq",
+      };
+    }
+
+    // Fallback to default
+    return {
+      requestedModel: "llama-2-7b",
+      groqModel: config.groq.defaultModel,
+      provider: "groq",
+    };
   }
 
   /**
    * Generate AI response with streaming
    */
-  async *generateResponse(message, model = config.groq.defaultModel) {
+  async *generateResponse(message, modelInfo) {
     try {
       // Check if API key is configured
       if (!isApiKeyConfigured()) {
-        yield* this.generateMockResponse(message);
+        yield* this.generateMockResponse(message, modelInfo);
         return;
       }
+
+      // Use the mapped Groq model for the actual API call
+      const groqModelToUse =
+        typeof modelInfo === "string" ? modelInfo : modelInfo.groqModel;
 
       // Create chat completion with streaming
       const stream = await this.groq.chat.completions.create({
@@ -44,7 +61,7 @@ class AIService {
           },
           { role: "user", content: message },
         ],
-        model: model,
+        model: groqModelToUse,
         temperature: config.streaming.temperature,
         max_tokens: config.streaming.maxTokens,
         stream: true,
@@ -75,10 +92,15 @@ class AIService {
   /**
    * Generate mock response when API key is not configured
    */
-  async *generateMockResponse(message) {
-    // Initial API key warning
+  async *generateMockResponse(message, modelInfo) {
+    const requestedModel =
+      typeof modelInfo === "string"
+        ? modelInfo
+        : modelInfo?.requestedModel || "unknown";
+
+    // Initial API key warning with model info
     yield {
-      token: SETUP_INSTRUCTIONS.API_KEY_WARNING,
+      token: `⚠️ **API Key Required** (Requested: ${requestedModel})\n\n${SETUP_INSTRUCTIONS.API_KEY_WARNING}`,
       finished: false,
     };
 
@@ -126,10 +148,10 @@ class AIService {
   /**
    * Generate complete response (non-streaming)
    */
-  async generateCompleteResponse(message, model = config.groq.defaultModel) {
+  async generateCompleteResponse(message, modelInfo) {
     const tokens = [];
 
-    for await (const tokenData of this.generateResponse(message, model)) {
+    for await (const tokenData of this.generateResponse(message, modelInfo)) {
       tokens.push(tokenData.token);
       if (tokenData.finished) break;
     }
@@ -143,8 +165,10 @@ class AIService {
   getAvailableModels() {
     return {
       models: AVAILABLE_MODELS,
-      default: config.groq.defaultModel,
-      provider: "Groq (Free)",
+      providers: MODEL_PROVIDERS,
+      default: "llama-2-7b", // Updated to match frontend default
+      fallbackGroqModel: config.groq.defaultModel,
+      provider: "Mixed (Groq Free Tier + Local)",
     };
   }
 

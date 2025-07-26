@@ -1,9 +1,34 @@
-// Available models (all free on Groq)
+// Available models - mapped to current active Groq models
 const AVAILABLE_MODELS = {
-  "llama3-8b": "llama3-8b-8192",
-  "llama3-70b": "llama3-70b-8192",
-  mixtral: "mixtral-8x7b-32768",
-  gemma: "gemma-7b-it",
+  // Groq models (free tier) - using current active models
+  "groq-llama": "llama-3.1-8b-instant",
+  "groq-mixtral": "llama-3.3-70b-versatile", // Mixtral deprecated, using Llama 3.3 70B
+  "groq-gemma": "gemma2-9b-it", // Updated to Gemma 2 9B
+
+  // Local Ollama models (mapped to current Groq models for now)
+  "llama-2-7b": "llama-3.1-8b-instant", // Current fast Llama model
+  "llama-2-13b": "llama-3.3-70b-versatile", // Current large Llama model
+  "mistral-7b": "llama-3.3-70b-versatile", // Mixtral deprecated, using versatile model
+  "codellama-7b": "llama-3.1-8b-instant", // Fast model good for coding
+  "gemma-2b": "gemma2-9b-it", // Current Gemma model
+  "phi-2": "llama-3.1-8b-instant", // Fallback to fast model
+
+  // HuggingFace free tier (mapped to Groq for now)
+  "huggingface-free": "llama-3.1-8b-instant",
+};
+
+// Model provider mapping
+const MODEL_PROVIDERS = {
+  "groq-llama": "groq",
+  "groq-mixtral": "groq",
+  "groq-gemma": "groq",
+  "llama-2-7b": "ollama", // Future: will use Ollama
+  "llama-2-13b": "ollama",
+  "mistral-7b": "groq", // Use Groq for now
+  "codellama-7b": "ollama",
+  "gemma-2b": "groq",
+  "phi-2": "ollama",
+  "huggingface-free": "huggingface", // Future: will use HF API
 };
 
 // System prompts
@@ -69,6 +94,7 @@ To use real AI responses, please:
 
 module.exports = {
   AVAILABLE_MODELS,
+  MODEL_PROVIDERS,
   SYSTEM_PROMPTS,
   RESPONSE_TYPES,
   HTTP_STATUS,

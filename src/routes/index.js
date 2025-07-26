@@ -21,7 +21,7 @@ router.use("/api/models", modelRoutes);
  */
 router.get("/api", (req, res) => {
   res.json({
-    name: "ChatGPT Clone API",
+    name: "AI Bot API",
     version: "1.0.0",
     description: "AI-powered chat API with streaming support",
     endpoints: {
@@ -52,7 +52,7 @@ router.get("/api", (req, res) => {
  */
 router.get("/", (req, res) => {
   res.json({
-    message: "Welcome to ChatGPT Clone API",
+    message: "Welcome to AI Bot API",
     status: "Server is running!",
     timestamp: new Date().toISOString(),
     version: "1.0.0",

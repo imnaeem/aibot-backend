@@ -8,7 +8,7 @@ const config = {
   // API Configuration
   groq: {
     apiKey: process.env.GROQ_API_KEY || "your_groq_api_key_here",
-    defaultModel: process.env.DEFAULT_MODEL || "llama3-8b-8192",
+    defaultModel: process.env.DEFAULT_MODEL || "llama-3.1-8b-instant",
   },
 
   // CORS Configuration
