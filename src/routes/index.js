@@ -2,6 +2,7 @@ const express = require("express");
 const chatRoutes = require("./chatRoutes");
 const healthRoutes = require("./healthRoutes");
 const modelRoutes = require("./modelRoutes");
+const fileUploadRoutes = require("./fileUploadRoutes");
 
 const router = express.Router();
 
@@ -15,6 +16,7 @@ router.use("/health", healthRoutes);
 // API routes
 router.use("/api/chat", chatRoutes);
 router.use("/api/models", modelRoutes);
+router.use("/api/upload", fileUploadRoutes);
 
 /**
  * API documentation route (placeholder)

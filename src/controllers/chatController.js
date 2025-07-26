@@ -17,7 +17,7 @@ class ChatController {
     try {
       logRequest(req, "- Streaming chat request");
 
-      const { message, model } = req.body;
+      const { message, model, documentContext } = req.body;
 
       // Validate required fields
       const validation = validateRequiredFields(req.body, ["message"]);
@@ -45,7 +45,8 @@ class ChatController {
       // Generate and stream AI response
       const tokenGenerator = aiService.generateResponse(
         sanitizedMessage,
-        selectedModel
+        selectedModel,
+        documentContext
       );
       await streamingService.streamAIResponse(res, tokenGenerator);
     } catch (error) {

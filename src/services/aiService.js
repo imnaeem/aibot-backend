@@ -40,11 +40,11 @@ class AIService {
   /**
    * Generate AI response with streaming
    */
-  async *generateResponse(message, modelInfo) {
+  async *generateResponse(message, modelInfo, documentContext = null) {
     try {
       // Check if API key is configured
       if (!isApiKeyConfigured()) {
-        yield* this.generateMockResponse(message, modelInfo);
+        yield* this.generateMockResponse(message, modelInfo, documentContext);
         return;
       }
 
@@ -52,15 +52,27 @@ class AIService {
       const groqModelToUse =
         typeof modelInfo === "string" ? modelInfo : modelInfo.groqModel;
 
+      // Prepare messages with document context if available
+      let messages = [
+        {
+          role: "system",
+          content: SYSTEM_PROMPTS.default,
+        },
+      ];
+
+      if (documentContext && documentContext.content) {
+        // Add document context as a system message
+        messages.push({
+          role: "system",
+          content: `You are analyzing the following document: "${documentContext.name}"\n\nDocument Content:\n${documentContext.content}\n\nPlease answer questions about this document based on its content.`,
+        });
+      }
+
+      messages.push({ role: "user", content: message });
+
       // Create chat completion with streaming
       const stream = await this.groq.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: SYSTEM_PROMPTS.default,
-          },
-          { role: "user", content: message },
-        ],
+        messages: messages,
         model: groqModelToUse,
         temperature: config.streaming.temperature,
         max_tokens: config.streaming.maxTokens,
@@ -92,7 +104,7 @@ class AIService {
   /**
    * Generate mock response when API key is not configured
    */
-  async *generateMockResponse(message, modelInfo) {
+  async *generateMockResponse(message, modelInfo, documentContext = null) {
     const requestedModel =
       typeof modelInfo === "string"
         ? modelInfo
@@ -104,8 +116,14 @@ class AIService {
       finished: false,
     };
 
+    // Add document context to mock response if available
+    let contextualMessage = message;
+    if (documentContext && documentContext.content) {
+      contextualMessage = `Document: ${documentContext.name}\n\nDocument Content:\n${documentContext.content}\n\nUser Question: ${message}`;
+    }
+
     // Get contextual mock response
-    const mockResponse = getMockResponse(message);
+    const mockResponse = getMockResponse(contextualMessage);
 
     // Stream the response word by word
     const words = mockResponse.split(" ");
@@ -137,7 +155,7 @@ class AIService {
       errorMessage += `Unexpected error: ${error.message}`;
     }
 
-    errorMessage += "\n\n*Falling back to mock response for this request.*";
+    errorMessage += "\n\n*Try again or select a different model.*";
 
     yield {
       token: errorMessage,
@@ -148,10 +166,14 @@ class AIService {
   /**
    * Generate complete response (non-streaming)
    */
-  async generateCompleteResponse(message, modelInfo) {
+  async generateCompleteResponse(message, modelInfo, documentContext = null) {
     const tokens = [];
 
-    for await (const tokenData of this.generateResponse(message, modelInfo)) {
+    for await (const tokenData of this.generateResponse(
+      message,
+      modelInfo,
+      documentContext
+    )) {
       tokens.push(tokenData.token);
       if (tokenData.finished) break;
     }
